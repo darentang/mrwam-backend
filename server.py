@@ -3,7 +3,7 @@ from flask import Flask
 from flask import request
 from flask import send_from_directory
 import atexit
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 import os
 import time
@@ -16,6 +16,7 @@ import uuid
 
 app = Flask(__name__)
 CORS(app, resources={r'/*': {"origins": '*'}})
+
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -28,6 +29,8 @@ app.config['SECRET_KEY'] = 'secret!'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/user.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+app.config['CORS_HEADERS'] = 'Content-Type'
+
 
 db.init_app(app)
 app.app_context().push()
@@ -44,6 +47,7 @@ lat = -33.8688
 lon = 151.2093
 
 @app.route('/list_downloads', methods=['GET'])
+@cross_origin()
 def list_downloads():
     # return a list of downloadable files including their ID, name, size, date of creation
     d = []
@@ -59,6 +63,7 @@ def list_downloads():
     return {'files': d}
 
 @app.route('/download', methods=['GET'])
+@cross_origin()
 def download():
     # id_ is a string
     name = request.args.get('name')
@@ -74,6 +79,7 @@ def download():
 
 
 @app.route('/add_job', methods=['POST'])
+@cross_origin()
 def schedule():
     print(request.json)
     try:
@@ -102,6 +108,7 @@ def schedule():
             }
 
 @app.route('/delete_job', methods=['GET'])
+@cross_origin()
 def delete_schedule():
     id_ = int(request.args.get('id'))
     job = Job.query.get(id_)
@@ -126,6 +133,7 @@ def take_image(job_id):
 
 
 @app.route('/list_schedule', methods=['GET'])
+@cross_origin()
 def list_schedule():
     jobs = Job.query.all()
     res = []
@@ -139,6 +147,7 @@ def list_schedule():
     return {'list': res}
 
 @app.route('/wod', methods=['GET'])
+@cross_origin()
 def wod():
     return {
         'time': time.time(),
@@ -155,6 +164,7 @@ def wod():
     }
 
 @app.route('/check_connection', methods=['GET'])
+@cross_origin()
 def check_connection():
     return{'success': True}
 
