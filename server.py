@@ -168,6 +168,10 @@ def wod():
 def check_connection():
     return{'success': True}
 
+@app.route('/', methods=['GET'])
+@cross_origin()
+def test():
+    return "<h1>The Server is Working</h1>"
 
 if __name__ == '__main__':
     app.run(port=5000,debug=True) 
