@@ -1,9 +1,14 @@
+import eventlet
+eventlet.monkey_patch()
+
+
 import flask
 from flask import Flask
 from flask import request
 from flask import send_from_directory
 import atexit
 from flask_cors import CORS, cross_origin
+from flask_socketio import SocketIO, send, emit
 
 import os
 import time
@@ -12,9 +17,12 @@ from model import Job, db
 from apscheduler.schedulers.background import BackgroundScheduler
 import uuid
 
-
+import serial
+import threading
+import numpy as np
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 CORS(app, resources={r'/*': {"origins": '*'}})
 
 @app.after_request
@@ -24,13 +32,13 @@ def after_request(response):
     return response
 
 download_dir = 'download'
+# FLASK CONFIG
 app.config["DEBUG"] = True
 app.config['SECRET_KEY'] = 'secret!'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/user.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['CORS_HEADERS'] = 'Content-Type'
-
 
 db.init_app(app)
 app.app_context().push()
@@ -41,6 +49,8 @@ cron = BackgroundScheduler()
 cron.start()
 
 atexit.register(lambda: cron.shutdown(wait=False))
+serial_alive = False
+
 
 
 lat = -33.8688
@@ -173,5 +183,46 @@ def check_connection():
 def test():
     return "<h1>The Server is Working</h1>"
 
+def serial_event():
+    global serial_alive
+    if serial_alive:
+        return
+    arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+    if arduino.isOpen():
+        arduino.close()
+    arduino.open()
+    serial_alive = True
+    print("Serial open")
+    while True:
+        try:    
+            b = arduino.readline()
+            if b != b'':
+                serial_read_callback(b)
+        except Exception as e:
+            print("error reading line", e)
+            pass
+
+def quat_to_eul(q):
+    return np.array([
+        np.arctan2(2*(q[0]*q[1]+q[2]*q[3]), 1-2*(q[1]**2+q[2]**2)),
+        np.arcsin(2*(q[0]*q[2]-q[3]*q[1])),
+        np.arctan2(2*(q[0]*q[3]+q[1]*q[2]), 1-2*(q[2]**2+q[3]**2))
+    ])
+
+def serial_read_callback(msg):
+    try:
+        q = np.array(list(map(float, msg.decode().split())))
+        eul = quat_to_eul(q)
+        socketio.emit('eul', {'x': eul[0], 'y': eul[1], 'z': eul[2]})
+    except Exception as e:
+        print("err", msg)
+        pass
+    
+    
+
+
 if __name__ == '__main__':
-    app.run(port=5000,debug=True) 
+    serial_thread = threading.Thread(target=serial_event)
+    serial_thread.setDaemon(True)
+    serial_thread.start()
+    socketio.run(app, port=5000,debug=False) 
