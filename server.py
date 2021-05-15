@@ -187,7 +187,10 @@ def serial_event():
     global serial_alive
     if serial_alive:
         return
-    arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+    try:
+        arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+    except Exception:
+        return
     if arduino.isOpen():
         arduino.close()
     arduino.open()
@@ -225,4 +228,4 @@ if __name__ == '__main__':
     serial_thread = threading.Thread(target=serial_event)
     serial_thread.setDaemon(True)
     serial_thread.start()
-    socketio.run(app, port=5000,debug=False) 
+    socketio.run(app, port=5000,debug=True) 
