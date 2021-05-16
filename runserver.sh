@@ -1,0 +1,1 @@
+gunicorn --certfile=server.crt --keyfile=server.key --bind 0.0.0.0:5000 server:app

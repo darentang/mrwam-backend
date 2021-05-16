@@ -67,7 +67,7 @@ def list_downloads():
         d.append({
             'filename': fname,
             'size': os.stat(path).st_size,
-            'created_time': os.stat(path).st_ctime,
+            'created_time': os.stat(path).st_mtime,
         })
     # return json of files
     return {'files': d}
@@ -205,6 +205,23 @@ def serial_event():
             print("error reading line", e)
             pass
 
+def obs_loop():
+    while True:
+        socketio.emit('wod', {
+            'time': time.time(),
+            'lat': lat  + np.random.normal(),
+            'lon': lon  + np.random.normal(),
+            'mode': 'normal',
+            "v_batt": 4.5 + np.random.normal(),
+            "i_batt": 400.2  + np.random.normal(),
+            "v_33": 254.2  + np.random.normal(),
+            "v_5": 3.852  + np.random.normal(),
+            "t_comm": 25.0  + np.random.normal(),
+            "t_eps": 29.6  + np.random.normal(),
+            "t_batt": 28.6  + np.random.normal()
+        })
+        time.sleep(1)
+
 def quat_to_eul(q):
     return np.array([
         np.arctan2(2*(q[0]*q[1]+q[2]*q[3]), 1-2*(q[1]**2+q[2]**2)),
@@ -228,4 +245,7 @@ if __name__ == '__main__':
     serial_thread = threading.Thread(target=serial_event)
     serial_thread.setDaemon(True)
     serial_thread.start()
-    socketio.run(app, port=5000,debug=True) 
+    obs_thread = threading.Thread(target=obs_loop)
+    obs_thread.setDaemon(True)
+    obs_thread.start()
+    socketio.run(app, port=5000, debug=True) 
