@@ -190,6 +190,7 @@ def serial_event():
     try:
         arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
     except Exception:
+        print("error connecting to serial")
         return
     if arduino.isOpen():
         arduino.close()
@@ -248,4 +249,4 @@ if __name__ == '__main__':
     obs_thread = threading.Thread(target=obs_loop)
     obs_thread.setDaemon(True)
     obs_thread.start()
-    socketio.run(app, port=5000, debug=True) 
+    socketio.run(app, port=5000, debug=False) 
