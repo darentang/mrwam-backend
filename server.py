@@ -241,12 +241,12 @@ def serial_read_callback(msg):
     
     
 
+serial_thread = threading.Thread(target=serial_event)
+serial_thread.setDaemon(True)
+serial_thread.start()
+obs_thread = threading.Thread(target=obs_loop)
+obs_thread.setDaemon(True)
+obs_thread.start()
 
 if __name__ == '__main__':
-    serial_thread = threading.Thread(target=serial_event)
-    serial_thread.setDaemon(True)
-    serial_thread.start()
-    obs_thread = threading.Thread(target=obs_loop)
-    obs_thread.setDaemon(True)
-    obs_thread.start()
     socketio.run(app, port=5000, debug=False) 
