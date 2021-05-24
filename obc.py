@@ -1,5 +1,10 @@
 import numpy as np
 import time
+import configparser
+
+
+lat = float(config['gps']['lat'])
+lon = float(config['gps']['lon'])
 
 class OBC:
     def __init__(self, sio):

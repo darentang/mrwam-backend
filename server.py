@@ -62,8 +62,6 @@ serial_alive = False
 
 
 
-lat = float(config['gps']['lat'])
-lon = float(config['gps']['lon'])
 
 @app.route('/list_downloads', methods=['GET'])
 @cross_origin()
@@ -160,23 +158,6 @@ def list_schedule():
             }
         )
     return {'list': res}
-
-@app.route('/wod', methods=['GET'])
-@cross_origin()
-def wod():
-    return {
-        'time': time.time(),
-        'lat': lat,
-        'lon': lon,
-        'mode': 'normal',
-        "v_batt": 4.5 ,
-        "i_batt": 400.2,
-        "v_33": 254.2,
-        "v_5": 3.852,
-        "t_comm": 25.0,
-        "t_eps": 29.6,
-        "t_batt": 28.6
-    }
 
 @app.route('/check_connection', methods=['GET'])
 @cross_origin()
