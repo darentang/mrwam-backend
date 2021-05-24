@@ -15,7 +15,7 @@ class OBC:
 
 
 
-    def broadcast_wod(self)            
+    def broadcast_wod(self):
         self.socketio.emit('wod', {
             'time': time.time(),
             'lat': lat  + np.random.normal(),
