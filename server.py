@@ -188,7 +188,9 @@ def serial_event():
     if serial_alive:
         return
     try:
-        arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+        # arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+        
+        arduino = serial.Serial(port='/dev/tty.usbmodem14202', baudrate=115200, timeout=0.1)
     except Exception:
         print("error connecting to serial")
         return
@@ -239,14 +241,14 @@ def serial_read_callback(msg):
         print("err", msg)
         pass
     
-    
 
+serial_thread = threading.Thread(target=serial_event)
+serial_thread.setDaemon(True)
+serial_thread.start()
+obs_thread = threading.Thread(target=obs_loop)
+obs_thread.setDaemon(True)
+obs_thread.start()
 
 if __name__ == '__main__':
-    serial_thread = threading.Thread(target=serial_event)
-    serial_thread.setDaemon(True)
-    serial_thread.start()
-    obs_thread = threading.Thread(target=obs_loop)
-    obs_thread.setDaemon(True)
-    obs_thread.start()
+
     socketio.run(app, port=5000, debug=False) 
