@@ -23,11 +23,15 @@ import numpy as np
 
 import configparser
 
+from obc import OBC
+
 config = configparser.ConfigParser()
 config.read('config.ini')
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+obc = OBC(socketio)
+
 CORS(app, resources={r'/*': {"origins": '*'}})
 
 @app.after_request
@@ -146,9 +150,9 @@ def take_image(job_id):
 @app.route('/list_schedule', methods=['GET'])
 @cross_origin()
 def list_schedule():
-    jobs = Job.query.all()
+    jobc = Job.query.all()
     res = []
-    for job in jobs:
+    for job in jobc:
         res.append(
             {
             'id': job.id, 'lat': job.lat, 'lon': job.lon, 'time': job.time.timestamp(), 
@@ -194,7 +198,6 @@ def serial_event():
             baudrate=int(config['serial']['baudrate']), 
             timeout=float(config['serial']['timeout'])
             )
-        # arduino = serial.Serial(port='/dev/tty.usbmodem14202', baudrate=115200, timeout=0.1)
     except Exception:
         print("error connecting to serial")
         return
@@ -212,22 +215,7 @@ def serial_event():
             print("error reading line", e)
             pass
 
-def obs_loop():
-    while True:
-        socketio.emit('wod', {
-            'time': time.time(),
-            'lat': lat  + np.random.normal(),
-            'lon': lon  + np.random.normal(),
-            'mode': 'normal',
-            "v_batt": 4.5 + np.random.normal(),
-            "i_batt": 400.2  + np.random.normal(),
-            "v_33": 254.2  + np.random.normal(),
-            "v_5": 3.852  + np.random.normal(),
-            "t_comm": 25.0  + np.random.normal(),
-            "t_eps": 29.6  + np.random.normal(),
-            "t_batt": 28.6  + np.random.normal()
-        })
-        time.sleep(1)
+
 
 def quat_to_eul(q):
     return np.array([
@@ -249,9 +237,9 @@ def serial_read_callback(msg):
 serial_thread = threading.Thread(target=serial_event)
 serial_thread.setDaemon(True)
 serial_thread.start()
-obs_thread = threading.Thread(target=obs_loop)
-obs_thread.setDaemon(True)
-obs_thread.start()
+obc_thread = threading.Thread(target=obc.obc_loop)
+obc_thread.setDaemon(True)
+obc_thread.start()
 
 if __name__ == '__main__':
     socketio.run(app, port=5000, debug=False) 
