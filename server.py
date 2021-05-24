@@ -250,5 +250,4 @@ obs_thread.setDaemon(True)
 obs_thread.start()
 
 if __name__ == '__main__':
-
     socketio.run(app, port=5000, debug=False) 
