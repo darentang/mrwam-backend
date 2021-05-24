@@ -2,6 +2,8 @@ import numpy as np
 import time
 import configparser
 
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 lat = float(config['gps']['lat'])
 lon = float(config['gps']['lon'])
