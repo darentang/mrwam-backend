@@ -21,6 +21,11 @@ import serial
 import threading
 import numpy as np
 
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 CORS(app, resources={r'/*': {"origins": '*'}})
@@ -35,7 +40,7 @@ download_dir = 'download'
 # FLASK CONFIG
 app.config["DEBUG"] = True
 app.config['SECRET_KEY'] = 'secret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/pi/mrwam-backend/job.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = config['db']['path']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -53,8 +58,8 @@ serial_alive = False
 
 
 
-lat = -33.8688
-lon = 151.2093
+lat = float(config['gps']['lat'])
+lon = float(config['gps']['lon'])
 
 @app.route('/list_downloads', methods=['GET'])
 @cross_origin()
@@ -108,10 +113,6 @@ def schedule():
         db.session.commit()
 
         cron.add_job(func=take_image, args=([job.id]), trigger="date", run_date=time, id=str(job.id))
-        # cron.add_job(
-        #     func=take_image, args=([job.id]), trigger="date", run_date=datetime.datetime.now(),
-        #     id=str(job.id)            
-        #     )
 
         return {
             'success': True, 'message': str(job), 'job_id': job.id
@@ -188,7 +189,11 @@ def serial_event():
     if serial_alive:
         return
     try:
-        arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+        arduino = serial.Serial(
+            port=config['serial']['port'], 
+            baudrate=int(config['serial']['baudrate']), 
+            timeout=float(config['serial']['timeout'])
+            )
         # arduino = serial.Serial(port='/dev/tty.usbmodem14202', baudrate=115200, timeout=0.1)
     except Exception:
         print("error connecting to serial")
