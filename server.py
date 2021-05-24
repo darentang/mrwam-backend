@@ -35,7 +35,7 @@ download_dir = 'download'
 # FLASK CONFIG
 app.config["DEBUG"] = True
 app.config['SECRET_KEY'] = 'secret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/user.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/pi/mrwam-backend/job.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -189,6 +189,7 @@ def serial_event():
         return
     try:
         arduino = serial.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=0.1)
+        # arduino = serial.Serial(port='/dev/tty.usbmodem14202', baudrate=115200, timeout=0.1)
     except Exception:
         print("error connecting to serial")
         return
@@ -238,7 +239,6 @@ def serial_read_callback(msg):
     except Exception as e:
         print("err", msg)
         pass
-    
     
 
 serial_thread = threading.Thread(target=serial_event)
