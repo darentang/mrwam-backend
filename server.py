@@ -23,6 +23,8 @@ import numpy as np
 
 import configparser
 
+from picamera import PiCamera
+
 from obc import OBC
 
 config = configparser.ConfigParser()
@@ -60,8 +62,8 @@ cron.start()
 atexit.register(lambda: cron.shutdown(wait=False))
 serial_alive = False
 
-
-
+camera = PiCamera()
+camera.resolution = (config['camera']['width'], config['camera']['height'])
 
 @app.route('/list_downloads', methods=['GET'])
 @cross_origin()
@@ -136,10 +138,10 @@ def delete_schedule():
 
 def take_image(job_id):
     app.app_context().push()
-    fname = str(uuid.uuid4()) + '.txt'
+    fname = str(uuid.uuid4()) + '.png'
     job = Job.query.get(job_id)
-    with open(os.path.join(download_dir, fname), 'w') as f:
-        f.write(str(job))
+
+    camera.capture(os.path.join(download_dir, fname), format='png')
     job.image_name = fname
     job.completed = True
     db.session.commit()

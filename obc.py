@@ -9,6 +9,8 @@ config.read('config.ini')
 lat = float(config['gps']['lat'])
 lon = float(config['gps']['lon'])
 
+
+
 class OBC:
     def __init__(self, sio):
         self.socketio = sio
@@ -22,6 +24,8 @@ class OBC:
         while True:
             # obc code here
             self.broadcast_wod()
+
+            
 
             # can change
             time.sleep(1)
@@ -43,3 +47,4 @@ class OBC:
             "t_eps": 29.6  + np.random.normal(),
             "t_batt": 28.6  + np.random.normal()
         })
+        
