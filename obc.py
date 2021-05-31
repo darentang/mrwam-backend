@@ -16,8 +16,8 @@ class OBC:
         self.socketio = sio
         self.gps = serial.Serial(
             port=config['gps']['port'], 
-            baudrate=config['gps']['baudrate'],
-            timeout=config['gps']['timeout']
+            baudrate=int(config['gps']['baudrate']),
+            timeout=float(config['gps']['timeout'])
         )
         print("gps serial established")
 
