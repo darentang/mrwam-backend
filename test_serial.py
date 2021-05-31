@@ -1,7 +1,13 @@
-import serial
 import time
+import serial
 
-ser = serial.Serial(port="/dev/ttyS0", baudrate=115200)
+ser = serial.Serial(
+	port = '/dev/ttyS0',
+	baudrate = 9600,
+	timeout = 1
+)
 
 while True:
-    print(ser.readlines())
+    print(ser.readline())
+
+    time.sleep(1)
