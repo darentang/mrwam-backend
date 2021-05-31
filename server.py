@@ -63,7 +63,7 @@ atexit.register(lambda: cron.shutdown(wait=False))
 serial_alive = False
 
 camera = PiCamera()
-camera.resolution = (config['camera']['width'], config['camera']['height'])
+camera.resolution = (int(config['camera']['width']), int(config['camera']['height']))
 
 @app.route('/list_downloads', methods=['GET'])
 @cross_origin()
