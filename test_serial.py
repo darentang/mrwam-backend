@@ -2,7 +2,14 @@ import time
 import serial
 import logging
 
-logging.basicConfig(filename="download/gps.log", encoding="utf-8", level=logging.DEBUG)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+handler = logging.FileHandler("download/gps.loh", "w", "utf-8")
+formatter = logging.Formatter("%(name)s %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 
 ser = serial.Serial(
 	port = '/dev/ttyS0',
@@ -18,11 +25,11 @@ while True:
         continue
 
     if line[0] == "$GPGLL":
-        logging.info(f"Recorded location {line[1]}E, {line[3]}N")
+        logger.info(f"Recorded location {line[1]}E, {line[3]}N")
     if line[0] == "$GPGSA":
         i = 3
         while line[i] != "":
             if i == 14:
                 break
             i += 1
-        logging.info(f"There are currently {i-3} satellites visible")
+        logger.info(f"There are currently {i-3} satellites visible")
