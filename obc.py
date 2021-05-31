@@ -19,6 +19,7 @@ class OBC:
             baudrate=config['gps']['baudrate'],
             timeout=config['gps']['timeout']
         )
+        print("gps serial established")
 
     def obc_loop(self):
         while True:
