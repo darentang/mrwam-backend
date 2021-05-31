@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import configparser
+import serial
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -11,6 +12,11 @@ lon = float(config['gps']['lon'])
 class OBC:
     def __init__(self, sio):
         self.socketio = sio
+        self.gps = serial.Serial(
+            port=config['gps']['port'], 
+            baudrate=config['gps']['baudrate'],
+            timeout=config['gps']['timeout']
+        )
 
     def obc_loop(self):
         while True:
@@ -19,6 +25,7 @@ class OBC:
 
             # can change
             time.sleep(1)
+            print(self.gps.readline())
 
 
 

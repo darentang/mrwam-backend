@@ -15,6 +15,7 @@ itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==1.1.1
 numpy==1.20.3
+picamera==1.13
 pkg-resources==0.0.0
 pyserial==3.5
 python-engineio==3.13.2
