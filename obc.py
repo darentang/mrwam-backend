@@ -21,14 +21,14 @@ class OBC:
         )
         print("gps serial established")
 
+    def gps_loop(self):
+        while True:
+            print(self.gps.readline())
+
     def obc_loop(self):
         while True:
             # obc code here
             self.broadcast_wod()
-
-            
-            
-            print(self.gps.readlines())
 
             # can change
             time.sleep(1)

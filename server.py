@@ -217,12 +217,14 @@ def serial_read_callback(msg):
         pass
     
 
-serial_thread = threading.Thread(target=serial_event)
-serial_thread.setDaemon(True)
+serial_thread = threading.Thread(target=serial_event, daemon=True)
 serial_thread.start()
-obc_thread = threading.Thread(target=obc.obc_loop)
-obc_thread.setDaemon(True)
+
+obc_thread = threading.Thread(target=obc.obc_loop, daemon=True)
 obc_thread.start()
+
+gps_thread = threading.Thread(target=obc.gps_loop, daemon=True)
+gps_thread.start()
 
 if __name__ == '__main__':
     socketio.run(app, port=5000, debug=False) 
