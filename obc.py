@@ -27,8 +27,8 @@ class OBC:
             self.broadcast_wod()
 
             
-            if self.gps.in_waiting > 30:
-                print(self.gps.readline())
+            
+            print(self.gps.readlines())
 
             # can change
             time.sleep(1)
