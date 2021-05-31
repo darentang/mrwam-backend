@@ -223,7 +223,7 @@ serial_thread.start()
 obc_thread = threading.Thread(target=obc.obc_loop, daemon=True)
 obc_thread.start()
 
-gps_thread = threading.Thread(target=obc.gps_loop, daemon=True)
+gps_thread = threading.Thread(target=obc.gps_loop)
 gps_thread.start()
 
 if __name__ == '__main__':
