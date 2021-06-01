@@ -5,8 +5,8 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler("download/gps.loh", "w", "utf-8")
-formatter = logging.Formatter("%(name)s %(message)s")
+handler = logging.FileHandler("download/gps.log", "w", "utf-8")
+formatter = logging.Formatter("[%(asctime)s] %(name)s %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -17,15 +17,19 @@ ser = serial.Serial(
 	timeout = 1
 )
 
+logger.info(f"Starting Serial")
+
 while True:
     line = ser.readline()
     try:
-        line = line.encode('utf-8').split(",")
+        line = line.decode('utf-8').split(",")
     except:
+        logger.info(f"wtf is this line {line}")
         continue
 
     if line[0] == "$GPGLL":
-        logger.info(f"Recorded location {line[1]}E, {line[3]}N")
+        logger.info(f"location {line[1]}{line[2]}, {line[3]}{line[4]}")
+        logger.info(f"UTC time {line[5]}")
     if line[0] == "$GPGSA":
         i = 3
         while line[i] != "":
