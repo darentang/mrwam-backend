@@ -19,7 +19,7 @@ class OBC:
             baudrate=int(config['gps']['baudrate']),
             timeout=float(config['gps']['timeout'])
         )
-        print("gps serial established")
+        print(f"gps serial established, baudrate {baudrate}, timeout {timeout}")
 
     def gps_loop(self):
         while True:
