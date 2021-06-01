@@ -24,7 +24,7 @@ while True:
     try:
         line = line.decode('utf-8').split(",")
     except:
-        logger.info(f"wtf is this line {line}")
+        logger.info(f"wtf is this line {line.hex()}")
         continue
 
     if line[0] == "$GPGLL":

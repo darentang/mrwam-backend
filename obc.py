@@ -6,11 +6,6 @@ import serial
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-lat = float(config['gps']['lat'])
-lon = float(config['gps']['lon'])
-
-
-
 class OBC:
     def __init__(self, sio):
         self.socketio = sio
@@ -19,11 +14,29 @@ class OBC:
             baudrate=int(config['gps']['baudrate']),
             timeout=float(config['gps']['timeout'])
         )
-        print(f"gps serial established, baudrate {baudrate}, timeout {timeout}")
+
+        self.lat = float(config['gps']['lat'])
+        self.lon = float(config['gps']['lon'])
+        print(f"gps serial established, baudrate {config['gps']['baudrate']}, timeout {config['gps']['timeout']}")
 
     def gps_loop(self):
         while True:
-            print(self.gps.readline())
+            line = self.gps.readline()
+            try:
+                line = line.decode('utf-8').split(",")
+            except:
+                continue
+
+            if line[0] == "$GPGLL":
+                lat = float(line[1])/100
+                lon = float(line[3])/100
+
+                if line[2] == "S":
+                    lat *= -1
+
+                if line[4] == "W":
+                    lon *= -1
+            time.sleep(0.1)
 
     def obc_loop(self):
         while True:
@@ -38,8 +51,8 @@ class OBC:
     def broadcast_wod(self):
         self.socketio.emit('wod', {
             'time': time.time(),
-            'lat': lat  + np.random.normal(),
-            'lon': lon  + np.random.normal(),
+            'lat': self.lat,
+            'lon': self.lon,
             'mode': 'normal',
             "v_batt": 4.5 + np.random.normal(),
             "i_batt": 400.2  + np.random.normal(),

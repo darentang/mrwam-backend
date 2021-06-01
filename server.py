@@ -1,11 +1,8 @@
-import eventlet
-eventlet.monkey_patch()
-
+# import eventlet
+# eventlet.monkey_patch()
 
 import flask
-from flask import Flask
-from flask import request
-from flask import send_from_directory
+from flask import Flask, request, Response, send_from_directory
 import atexit
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO, send, emit
@@ -24,6 +21,7 @@ import numpy as np
 import configparser
 
 from picamera import PiCamera
+from stream import Stream
 
 from obc import OBC
 
@@ -31,7 +29,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode="threading")
 obc = OBC(socketio)
 
 CORS(app, resources={r'/*': {"origins": '*'}})
@@ -62,8 +60,8 @@ cron.start()
 atexit.register(lambda: cron.shutdown(wait=False))
 serial_alive = False
 
-camera = PiCamera()
-camera.resolution = (int(config['camera']['width']), int(config['camera']['height']))
+stream = Stream(640, 480)
+
 
 @app.route('/list_downloads', methods=['GET'])
 @cross_origin()
@@ -136,15 +134,42 @@ def delete_schedule():
     db.session.commit()
     return {'success': True}
 
+@app.route('/take_image_now', methods=['GET'])
+@cross_origin()
+def take_image_now():
+    take_image(None)
+    return {'success': True}
+
 def take_image(job_id):
     app.app_context().push()
     fname = str(uuid.uuid4()) + '.png'
-    job = Job.query.get(job_id)
+    if job_id != None:
+        job = Job.query.get(job_id)
+        job.image_name = fname
+        job.completed = True
+        db.session.commit()
+    print(f"taking image now with filename {fname}")
 
-    camera.capture(os.path.join(download_dir, fname), format='png')
-    job.image_name = fname
-    job.completed = True
-    db.session.commit()
+    with PiCamera() as camera:
+        camera.start_preview()
+        time.sleep(2)
+        camera.resolution = (int(config['camera']['width']), int(config['camera']['height']))
+        camera.capture(os.path.join(download_dir, fname), format='png')
+    
+    print("finished capturing")
+
+def gen_feed():
+    while True:
+        frame = stream.get_frame()
+        if frame is None:
+            frame = b''
+        yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video_feed')
+@cross_origin()
+def video_feed():
+    return Response(gen_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/list_schedule', methods=['GET'])
@@ -220,11 +245,11 @@ def serial_read_callback(msg):
 # serial_thread = threading.Thread(target=serial_event, daemon=True)
 # serial_thread.start()
 
-# obc_thread = threading.Thread(target=obc.obc_loop, daemon=True)
-# obc_thread.start()
+obc_thread = threading.Thread(target=obc.obc_loop, daemon=True)
+obc_thread.start()
 
-gps_thread = threading.Thread(target=obc.gps_loop)
-gps_thread.start()
+# gps_thread = threading.Thread(target=obc.gps_loop)
+# gps_thread.start()
 
 if __name__ == '__main__':
-    socketio.run(app, port=5000, debug=False) 
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False) 
