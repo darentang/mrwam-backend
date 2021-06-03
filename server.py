@@ -20,7 +20,10 @@ import numpy as np
 
 import configparser
 
-from picamera import PiCamera
+try:
+    from picamera import PiCamera
+except ImportError:
+    print("error importing picamera")
 from stream import Stream
 
 from obc import OBC
@@ -60,7 +63,22 @@ cron.start()
 atexit.register(lambda: cron.shutdown(wait=False))
 serial_alive = False
 
-stream = Stream(640, 480)
+# stream = Stream(640, 480)
+
+eul = np.array([0 ,0, 0])
+
+try:
+    arduino = serial.Serial(
+        port=config['serial']['port'], 
+        baudrate=int(config['serial']['baudrate']), 
+        timeout=float(config['serial']['timeout'])
+        )
+    if arduino.is_open:
+        arduino.close()
+    arduino.open()
+except Exception as e:
+    arduino = None
+    print("error connecting to serial", e)
 
 
 @app.route('/list_downloads', methods=['GET'])
@@ -171,6 +189,47 @@ def gen_feed():
 def video_feed():
     return Response(gen_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/test_motor', methods=['GET'])
+@cross_origin()
+def test_motor():
+    axis = request.args.get('axis')
+    direction = request.args.get('direction')
+
+    motor_map = {
+        ("X", "pos"): "X",
+        ("Y", "pos"): "Y",
+        ("Z", "pos"): "Z",
+        ("X", "neg"): "x",
+        ("Y", "neg"): "y",
+        ("Z", "neg"): "z",
+    }
+
+    code = motor_map.get((axis, direction), "X")
+    print(code)
+    arduino.write((code + "\n").encode("utf-8"))
+    return {'success': True}
+
+
+@app.route('/point', methods=['GET'])
+@cross_origin()
+def point():
+    mode = request.args.get('mode')
+    if mode == "Q":
+        arduino.write((mode + "\n").encode("utf-8"))
+        return {'success': True}
+
+    axis_map = {
+        "X": 0, "Y":1, "Z":2
+    }
+
+    axis = request.args.get('axis')
+
+    eul[axis_map[axis]] += np.deg2rad(5)
+
+    q = eul_to_quat(eul)
+
+    arduino.write((f"q {q[0]:.3f} {q[1]:.3f} {q[2]:.3f} {q[3]:.3f}\n").encode("utf-8"))
+    return {'success': True}
 
 @app.route('/list_schedule', methods=['GET'])
 @cross_origin()
@@ -200,20 +259,11 @@ def serial_event():
     global serial_alive
     if serial_alive:
         return
-    try:
-        arduino = serial.Serial(
-            port=config['serial']['port'], 
-            baudrate=int(config['serial']['baudrate']), 
-            timeout=float(config['serial']['timeout'])
-            )
-    except Exception:
-        print("error connecting to serial")
-        return
-    if arduino.isOpen():
-        arduino.close()
-    arduino.open()
     serial_alive = True
     print("Serial open")
+
+    if arduino is None:
+        return
     while True:
         try:    
             b = arduino.readline()
@@ -232,18 +282,38 @@ def quat_to_eul(q):
         np.arctan2(2*(q[0]*q[3]+q[1]*q[2]), 1-2*(q[2]**2+q[3]**2))
     ])
 
-def serial_read_callback(msg):
-    try:
-        q = np.array(list(map(float, msg.decode().split())))
-        eul = quat_to_eul(q)
-        socketio.emit('eul', {'x': eul[0], 'y': eul[1], 'z': eul[2]})
-    except Exception as e:
-        print("err", msg)
-        pass
-    
+def eul_to_quat(e):
+    roll = e[0]
+    pitch = e[1]
+    yaw = e[2]
+    qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+    qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+    qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+    qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
 
-# serial_thread = threading.Thread(target=serial_event, daemon=True)
-# serial_thread.start()
+    return np.array([qw, qx, qy, qz])
+
+
+def serial_read_callback(msg):
+    print(msg)
+    global eul
+    try:
+        msg = msg.decode().split()
+    except:
+        print("err", msg)
+        return
+    if msg[0] == "q":
+        try:
+            q = np.array(list(map(float, msg[1:])))
+            eul = quat_to_eul(q)
+            socketio.emit('eul', {'x': eul[0], 'y': eul[1], 'z': eul[2]})
+        except Exception as e:
+            print("err", msg)
+    if msg[0] == "T":
+        return
+
+serial_thread = threading.Thread(target=serial_event, daemon=True)
+serial_thread.start()
 
 obc_thread = threading.Thread(target=obc.obc_loop, daemon=True)
 obc_thread.start()

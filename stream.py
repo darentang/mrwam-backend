@@ -1,5 +1,8 @@
 import io
-from picamera import PiCamera
+try:
+    from picamera import PiCamera
+except ImportError:
+    print("error importing picamera")
 import time
 import threading
 
