@@ -9,15 +9,21 @@ config.read('config.ini')
 class OBC:
     def __init__(self, sio):
         self.socketio = sio
-        self.gps = serial.Serial(
-            port=config['gps']['port'], 
-            baudrate=int(config['gps']['baudrate']),
-            timeout=float(config['gps']['timeout'])
-        )
-
+        try:
+            self.gps = serial.Serial(
+                port=config['gps']['port'], 
+                baudrate=int(config['gps']['baudrate']),
+                timeout=float(config['gps']['timeout'])
+            )
+        except:
+            print("error connecting to gps")
+            self.gps = None
+        else:
+            print(f"gps serial established, baudrate {config['gps']['baudrate']}, timeout {config['gps']['timeout']}")
+            
         self.lat = float(config['gps']['lat'])
         self.lon = float(config['gps']['lon'])
-        print(f"gps serial established, baudrate {config['gps']['baudrate']}, timeout {config['gps']['timeout']}")
+        
 
     def gps_loop(self):
         while True:

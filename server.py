@@ -219,12 +219,15 @@ def point():
         return {'success': True}
 
     axis_map = {
-        "X": 0, "Y":1, "Z":2
+        "X": (0, 1), "Y": (1, 1), "Z": (2, 1),
+        "x": (0, -1), "y": (1, -1), "z": (2, -1)
     }
 
     axis = request.args.get('axis')
 
-    eul[axis_map[axis]] += np.deg2rad(5)
+    print(axis)
+
+    eul[axis_map[axis][0]] += np.deg2rad(5) * axis_map[axis][1]
 
     q = eul_to_quat(eul)
 
@@ -295,7 +298,7 @@ def eul_to_quat(e):
 
 
 def serial_read_callback(msg):
-    print(msg)
+    # print(msg)
     global eul
     try:
         msg = msg.decode().split()
