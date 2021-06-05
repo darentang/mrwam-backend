@@ -64,8 +64,7 @@ atexit.register(lambda: cron.shutdown(wait=False))
 serial_alive = False
 
 # stream = Stream(640, 480)
-
-eul = np.array([0 ,0, 0])
+q = np.array([1, 0, 0, 0])
 
 try:
     arduino = serial.Serial(
@@ -213,8 +212,9 @@ def test_motor():
 @app.route('/point', methods=['GET'])
 @cross_origin()
 def point():
+    global q
     mode = request.args.get('mode')
-    if mode == "Q":
+    if mode == "Q" or mode == "r":
         arduino.write((mode + "\n").encode("utf-8"))
         return {'success': True}
 
@@ -225,12 +225,11 @@ def point():
 
     axis = request.args.get('axis')
 
-    print(axis)
-
+    eul = quat_to_eul(q)
     eul[axis_map[axis][0]] += np.deg2rad(5) * axis_map[axis][1]
 
     q = eul_to_quat(eul)
-
+    print(f"q {q[0]:.3f} {q[1]:.3f} {q[2]:.3f} {q[3]:.3f}\n")
     arduino.write((f"q {q[0]:.3f} {q[1]:.3f} {q[2]:.3f} {q[3]:.3f}\n").encode("utf-8"))
     return {'success': True}
 
@@ -299,7 +298,7 @@ def eul_to_quat(e):
 
 def serial_read_callback(msg):
     # print(msg)
-    global eul
+    global q
     try:
         msg = msg.decode().split()
     except:
@@ -308,12 +307,23 @@ def serial_read_callback(msg):
     if msg[0] == "q":
         try:
             q = np.array(list(map(float, msg[1:])))
-            eul = quat_to_eul(q)
+            R = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+            eul = R.T @ quat_to_eul(q)
             socketio.emit('eul', {'x': eul[0], 'y': eul[1], 'z': eul[2]})
         except Exception as e:
             print("err", msg)
     if msg[0] == "T":
-        return
+        try:
+            T = np.array(list(map(float, msg[1:])))
+            socketio.emit('T', {'x': T[0], 'y': T[1], 'z': T[2]})
+        except Exception as e:
+            print("err", msg)
+    if msg[0] == "i":
+        try: 
+            i = np.array(list(map(float, msg[1:])))
+            obc.wod = [i[5], i[4], i[0], i[2], i[6], i[7], i[8]]
+        except Exception as e:
+            print("err", msg)
 
 serial_thread = threading.Thread(target=serial_event, daemon=True)
 serial_thread.start()

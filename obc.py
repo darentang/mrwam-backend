@@ -23,6 +23,7 @@ class OBC:
             
         self.lat = float(config['gps']['lat'])
         self.lon = float(config['gps']['lon'])
+        self.wod = [0, 0, 0, 0, 0, 0, 0]
         
 
     def gps_loop(self):
@@ -60,12 +61,12 @@ class OBC:
             'lat': self.lat,
             'lon': self.lon,
             'mode': 'normal',
-            "v_batt": 4.5 + np.random.normal(),
-            "i_batt": 400.2  + np.random.normal(),
-            "v_33": 254.2  + np.random.normal(),
-            "v_5": 3.852  + np.random.normal(),
-            "t_comm": 25.0  + np.random.normal(),
-            "t_eps": 29.6  + np.random.normal(),
-            "t_batt": 28.6  + np.random.normal()
+            "v_batt": self.wod[0] / 1000,
+            "i_batt": self.wod[1],
+            "v_33": self.wod[2],
+            "v_5": self.wod[3],
+            "t_comm": self.wod[4],
+            "t_eps": self.wod[5],
+            "t_batt": self.wod[6]
         })
         
