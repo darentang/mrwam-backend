@@ -76,6 +76,9 @@ try:
     if arduino.is_open:
         arduino.close()
     arduino.open()
+    m_corr = np.genfromtxt('mag-offset.csv', delimiter=',')
+    # arduino.write(("c " + " ".join(map(str, m_corr))).encode("utf-8"))
+
 except Exception as e:
     arduino = None
     print("error connecting to serial", e)
@@ -267,6 +270,8 @@ def serial_event():
 
     if arduino is None:
         return
+
+        
     while True:
         try:    
             b = arduino.readline()
