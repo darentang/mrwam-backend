@@ -22,9 +22,10 @@ import configparser
 
 try:
     from picamera import PiCamera
+    from stream import Stream
 except ImportError:
     print("error importing picamera")
-from stream import Stream
+
 
 from obc import OBC
 
@@ -175,18 +176,18 @@ def take_image(job_id):
     
     print("finished capturing")
 
-def gen_feed():
-    while True:
-        frame = stream.get_frame()
-        if frame is None:
-            frame = b''
-        yield (b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+# def gen_feed():
+#     while True:
+#         frame = stream.get_frame()
+#         if frame is None:
+#             frame = b''
+#         yield (b'--frame\r\n'
+#                 b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-@app.route('/video_feed')
-@cross_origin()
-def video_feed():
-    return Response(gen_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# @app.route('/video_feed')
+# @cross_origin()
+# def video_feed():
+#     return Response(gen_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/test_motor', methods=['GET'])
 @cross_origin()
@@ -226,7 +227,7 @@ def point():
     axis = request.args.get('axis')
 
     eul = quat_to_eul(q)
-    eul[axis_map[axis][0]] += np.deg2rad(5) * axis_map[axis][1]
+    eul[axis_map[axis][0]] += np.deg2rad(10) * axis_map[axis][1]
 
     q = eul_to_quat(eul)
     print(f"q {q[0]:.3f} {q[1]:.3f} {q[2]:.3f} {q[3]:.3f}\n")
@@ -295,6 +296,13 @@ def eul_to_quat(e):
 
     return np.array([qw, qx, qy, qz])
 
+def quaternion_multiply(quaternion1, quaternion0):
+    w0, x0, y0, z0 = quaternion0
+    w1, x1, y1, z1 = quaternion1
+    return np.array([-x1 * x0 - y1 * y0 - z1 * z0 + w1 * w0,
+                     x1 * w0 + y1 * z0 - z1 * y0 + w1 * x0,
+                     -x1 * z0 + y1 * w0 + z1 * x0 + w1 * y0,
+                     x1 * y0 - y1 * x0 + z1 * w0 + w1 * z0], dtype=np.float64)
 
 def serial_read_callback(msg):
     # print(msg)
@@ -308,8 +316,10 @@ def serial_read_callback(msg):
         try:
             q = np.array(list(map(float, msg[1:])))
             R = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-            eul = R.T @ quat_to_eul(q)
+            eul = quat_to_eul(q)
+            q_ = quaternion_multiply([ 0, -0.7071068, 0, 0.7071068 ], q)
             socketio.emit('eul', {'x': eul[0], 'y': eul[1], 'z': eul[2]})
+            socketio.emit('q', {'q1': q_[0], 'q2': q_[1], 'q3': q_[2], 'q4': q_[3]})
         except Exception as e:
             print("err", msg)
     if msg[0] == "T":
